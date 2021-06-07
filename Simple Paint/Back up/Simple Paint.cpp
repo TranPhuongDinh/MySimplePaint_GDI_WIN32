@@ -53,7 +53,7 @@ int toY;
 bool isPreview = false;
 bool isInputbox = false;
 bool isSave = false;
-bool onUndoRedo = false;
+bool onCommandProcess = false;
 DWORD brushColor = -1;
 HDC hdc;
 
@@ -230,6 +230,32 @@ done:
     return 0;
 }
 
+void SaveAnImage() {
+    DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEBOX), hwnd, UserSave);
+    if (!isSave) {
+        //Do nothing
+    }
+    else if (fileNameLength == 0) {
+        MessageBox(hwnd, L"Please input a valid name!", L"Save Image Failed", MB_OK);
+    }
+    else if (isSave) {
+        //Create Folder to save
+        if (!filesystem::exists("Saved images"))
+            CreateDirectoryA("Saved images", NULL);
+
+        wcscat(fileName, L".bmp");
+        wcscpy(fileDir, L"Saved images//");
+        wcscat(fileDir, fileName);
+
+        CaptureAnImage(hwnd, fileDir);
+
+        WCHAR success[MAX_LOADSTRING];
+        wcscpy(success, L"The image has been saved at Save images/");
+        wcscat(success, fileName);
+        MessageBox(hwnd, success, L"Save Image", MB_OK);
+    }
+}
+
 void drawFromCache(HDC hdc, HPEN hPen) {
     if (cacheOpenFileDirs.size() > 0) {
         for (int i = 0; i < cacheOpenFileDirs.size(); i++) {
@@ -373,7 +399,7 @@ void Paint(HWND hwnd, LPPAINTSTRUCT ps) {
         //Do nothing
     }
 
-    if (!onUndoRedo) {
+    if (!onCommandProcess) {
         /*ERASER MODE*/
         if (isErasing) {
             Rectangle(hdcMem, fromX, fromY, toX, toY);
@@ -538,33 +564,10 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     {
         if (shapes.size() > 0 || texts.size() > 0 || cacheOpenFileDirs.size() > 0)  {
             if (MessageBox(hwnd, L"Save Image?", L"Save Image", MB_YESNO) == IDYES) {
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEBOX), hwnd, UserSave);
-                if (!isSave) {
-                    //Do nothing
-                }
-                else if (fileNameLength == 0) {
-                    MessageBox(hwnd, L"Please input a valid name!", L"Save Image Failed", MB_OK);
-                }
-                else if (isSave) {
-                    //Create Folder to save
-                    if (!filesystem::exists("Saved images"))
-                        CreateDirectoryA("Saved images", NULL);
-
-                    wcscat(fileName, L".bmp");
-                    wcscpy(fileDir, L"Saved images//");
-                    wcscat(fileDir, fileName);
-
-                    CaptureAnImage(hwnd, fileDir);
-
-                    WCHAR success[MAX_LOADSTRING];
-                    wcscpy(success, L"The image has been saved at Save images/");
-                    wcscat(success, fileName);
-                    MessageBox(hwnd, success, L"Save Image", MB_OK);
-                }
-                break;
+                SaveAnImage();
             }
         }
-        onUndoRedo = true;
+        onCommandProcess = true;
         shapes.clear();
         texts.clear();
         cacheTypes.clear();
@@ -579,7 +582,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     }
     case ID_FILE_OPEN:
     {
-        onUndoRedo = true;
+        onCommandProcess = true;
         DialogBox(hInst, MAKEINTRESOURCE(IDD_OPENBOX), hwnd, UserOpen);
         if (!isOpen) {
             //Do nothing
@@ -602,35 +605,13 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     }
     case ID_FILE_SAVE:
     {
-        DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEBOX), hwnd, UserSave);
-        if (!isSave) {
-            //Do nothing
-        }
-        else if (fileNameLength == 0) {
-            MessageBox(hwnd, L"Please input a valid name!", L"Save Image Failed", MB_OK);
-        }
-        else if (isSave) {
-            //Create Folder to save
-            if (!filesystem::exists("Saved images"))
-                CreateDirectoryA("Saved images", NULL);
-
-            wcscat(fileName, L".bmp");
-            wcscpy(fileDir, L"Saved images//");
-            wcscat(fileDir, fileName);
-
-            CaptureAnImage(hwnd, fileDir);
-
-            WCHAR success[MAX_LOADSTRING];
-            wcscpy(success, L"The image has been saved at Save images/");
-            wcscat(success, fileName);
-            MessageBox(hwnd, success, L"Save Image", MB_OK);
-        }
+        SaveAnImage();
         break;
     }
     case ID_FILE_CLEAR:
     {
-        if (shapes.size() > 0 || texts.size() > 0) {
-            onUndoRedo = true;
+        if (shapes.size() > 0 || texts.size() > 0 || cacheOpenFileDirs.size() > 0) {
+            onCommandProcess = true;
             RECT rc;
             GetClientRect(hwnd, &rc);
             rc.top += IMAGE_HEIGHT * 2;
@@ -648,31 +629,9 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     }
     case ID_FILE_EXIT:
     {
-        if (shapes.size() > 0 || texts.size() > 0) {
+        if (shapes.size() > 0 || texts.size() > 0 || cacheOpenFileDirs.size() > 0) {
             if (MessageBox(hwnd, L"Save Image?", L"Save Image", MB_YESNO) == IDYES) {
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEBOX), hwnd, UserSave);
-                if (!isSave) {
-                    //Do nothing
-                }
-                else if (fileNameLength == 0) {
-                    MessageBox(hwnd, L"Please input a valid name!", L"Save Image Failed", MB_OK);
-                }
-                else if (isSave) {
-                    //Create Folder to save
-                    if (!filesystem::exists("Saved images"))
-                        CreateDirectoryA("Saved images", NULL);
-
-                    wcscat(fileName, L".bmp");
-                    wcscpy(fileDir, L"Saved images//");
-                    wcscat(fileDir, fileName);
-
-                    CaptureAnImage(hwnd, fileDir);
-
-                    WCHAR success[MAX_LOADSTRING];
-                    wcscpy(success, L"The image has been saved at Save images/");
-                    wcscat(success, fileName);
-                    MessageBox(hwnd, success, L"Save Image", MB_OK);
-                }
+                SaveAnImage();
             }
         }
         PostQuitMessage(0);
@@ -754,7 +713,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     case ID_EDIT_UNDO:
     {
         if (cacheTypes.size() > 0) {
-            onUndoRedo = true;
+            onCommandProcess = true;
             if (cacheTypes.back() == "Image") {
                 if (cacheOpenFileDirs.size() > 0) {
                     WCHAR* lastDir = cacheOpenFileDirs.back();
@@ -788,7 +747,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     case ID_EDIT_REDO:
     {
         if (cacheRedoTypes.size() > 0) {
-            onUndoRedo = true;
+            onCommandProcess = true;
             if (cacheRedoTypes.back() == "Image") {
                 if (cacheRedoOpenFileDirs.size() > 0) {
                     WCHAR* lastDir = cacheRedoOpenFileDirs.back();
@@ -867,7 +826,7 @@ void OnPaint(HWND hwnd)
 
 void OnLButtonDown(HWND &hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
 {
-    onUndoRedo = false;
+    onCommandProcess = false;
     isPreview = true;
     fromX = x;
     fromY = y;
