@@ -14,10 +14,7 @@ Chức năng làm được:
 - Mở hình bmp và nạp vào cửa sổ chương trình
 
 Chức năng chưa làm được:
-- Chỉ mở được một hình mỗi lần nạp
-- Hộp thoại open và save file
-- Khi vẽ một số lượng hình nhất định sẽ bị freeze cửa sổ chương trình
-- Chỉ mở được một hình mỗi lần
+- Chỉ mở được một hình mỗi lần nạp vào cửa sổ chương trình
 - Hộp thoại open file và save file
 
 Môi trường chạy:
