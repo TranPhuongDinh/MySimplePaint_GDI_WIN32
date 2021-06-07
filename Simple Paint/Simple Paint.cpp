@@ -259,107 +259,110 @@ void SaveAnImage() {
 }
 
 void drawFromCache(HDC hdc, HPEN hPen) {
-    if (cacheOpenFileDirs.size() > 0) {
-        for (int i = 0; i < cacheOpenFileDirs.size(); i++) {
-            if (!LoadAndBlitBitmap(cacheOpenFileDirs[i], hdc)) {
-                cacheOpenFileDirs.clear();
-                MessageBox(NULL, __T("LoadImage Failed"), __T("Error"), MB_OK);
+    int imageIndex = 0, textIndex = 0, shapeIndex = 0;
+    for (int i = 0; i < cacheTypes.size(); i++) {
+        if (cacheTypes[i] == "Image") {
+            if (cacheOpenFileDirs.size() > 0) {
+                if (!LoadAndBlitBitmap(cacheOpenFileDirs[imageIndex++], hdc)) {
+                    cacheOpenFileDirs.clear();
+                    MessageBox(NULL, __T("LoadImage Failed"), __T("Error"), MB_OK);
+                }
             }
         }
-    }
-
-    for (int i = 0; i < texts.size(); i++) {
-        HFONT textFont = texts[i]->hfont();
-        SelectObject(hdc, textFont);
-        SetTextColor(hdc, texts[i]->textColor());
-        TextOut(hdc, texts[i]->x(), texts[i]->y(), texts[i]->textContent(), texts[i]->textLength());
-        DeleteObject(textFont);
-    }
-
-    for (int i = 0; i < shapes.size(); i++) {
-        if (shapes[i]->type() == "Curve") {
-            vector<string> tokens = Tokenizer::split(shapes[i]->toString(), ":");
-            MyCurve curve = MyCurve::parse(tokens[1]);
-            DWORD  curveColor = curve.outlineColor();
-            int lw = curve.lineWidth();
-
-            //DRAW
-            hPen = CreatePen(PS_DASHDOT, lw, curveColor);
-            SelectObject(hdc, hPen);
-
-            SetArcDirection(hdc, AD_CLOCKWISE);
-            Arc(hdc, curve.start().x(), curve.start().y(), curve.end().x(), curve.end().y(), curve.start().x(), curve.start().y(), curve.end().x(), curve.end().y());
-
-            DeleteObject(hPen);
+        else if (cacheTypes[i] == "Text") {
+            HFONT textFont = texts[textIndex]->hfont();
+            SelectObject(hdc, textFont);
+            SetTextColor(hdc, texts[textIndex]->textColor());
+            TextOut(hdc, texts[textIndex]->x(), texts[textIndex]->y(), texts[textIndex]->textContent(), texts[textIndex]->textLength());
+            //DeleteObject(textFont);
+            textIndex++;
         }
-        else if (shapes[i]->type() == "Line") {
-            vector<string> tokens = Tokenizer::split(shapes[i]->toString(), ":");
-            MyLine line = MyLine::parse(tokens[1]);
-            DWORD  lineColor = line.outlineColor();
-            int lw = line.lineWidth();
+        else if (cacheTypes[i] == "Shape") {
+            if (shapes[shapeIndex]->type() == "Curve") {
+                vector<string> tokens = Tokenizer::split(shapes[shapeIndex]->toString(), ":");
+                MyCurve curve = MyCurve::parse(tokens[1]);
+                DWORD  curveColor = curve.outlineColor();
+                int lw = curve.lineWidth();
 
-            //DRAW
-            hPen = CreatePen(PS_DASHDOT, lw, lineColor);
-            SelectObject(hdc, hPen);
+                //DRAW
+                hPen = CreatePen(PS_DASHDOT, lw, curveColor);
+                SelectObject(hdc, hPen);
 
-            MoveToEx(hdc, line.start().x(), line.start().y(), NULL);
-            LineTo(hdc, line.end().x(), line.end().y());
+                SetArcDirection(hdc, AD_CLOCKWISE);
+                Arc(hdc, curve.start().x(), curve.start().y(), curve.end().x(), curve.end().y(), curve.start().x(), curve.start().y(), curve.end().x(), curve.end().y());
 
-            DeleteObject(hPen);
-        }
-        else if (shapes[i]->type() == "Rectangle") {
-            vector<string> tokens = Tokenizer::split(shapes[i]->toString(), ":");
-            MyRectangle rect = MyRectangle::parse(tokens[1]);
-
-            //DRAW
-            int lw = rect.lineWidth();
-            DWORD  lineColor = rect.outlineColor();
-            DWORD  fillColor = rect.fillColor();
-
-            hPen = CreatePen(PS_DASHDOT, lw, lineColor);
-            SelectObject(hdc, hPen);
-
-            if (fillColor != -1) {
-                HBRUSH shapeBrush = CreateSolidBrush(fillColor);
-                SelectObject(hdc, shapeBrush);
-                Rectangle(hdc, rect.topLeft().x(), rect.topLeft().y(), rect.rightBottom().x(), rect.rightBottom().y());
-                DeleteObject(shapeBrush);
+                DeleteObject(hPen);
             }
-            else {
-                HGDIOBJ hollowBrush = GetStockObject(HOLLOW_BRUSH);
-                SelectObject(hdc, hollowBrush);
-                Rectangle(hdc, rect.topLeft().x(), rect.topLeft().y(), rect.rightBottom().x(), rect.rightBottom().y());
-                DeleteObject(hollowBrush);
+            else if (shapes[shapeIndex]->type() == "Line") {
+                vector<string> tokens = Tokenizer::split(shapes[shapeIndex]->toString(), ":");
+                MyLine line = MyLine::parse(tokens[1]);
+                DWORD  lineColor = line.outlineColor();
+                int lw = line.lineWidth();
+
+                //DRAW
+                hPen = CreatePen(PS_DASHDOT, lw, lineColor);
+                SelectObject(hdc, hPen);
+
+                MoveToEx(hdc, line.start().x(), line.start().y(), NULL);
+                LineTo(hdc, line.end().x(), line.end().y());
+
+                DeleteObject(hPen);
             }
+            else if (shapes[shapeIndex]->type() == "Rectangle") {
+                vector<string> tokens = Tokenizer::split(shapes[shapeIndex]->toString(), ":");
+                MyRectangle rect = MyRectangle::parse(tokens[1]);
 
-            DeleteObject(hPen);
-        }
-        else if (shapes[i]->type() == "Ellipse") {
-            vector<string> tokens = Tokenizer::split(shapes[i]->toString(), ":");
-            MyEllipse ell = MyEllipse::parse(tokens[1]);
+                //DRAW
+                int lw = rect.lineWidth();
+                DWORD  lineColor = rect.outlineColor();
+                DWORD  fillColor = rect.fillColor();
 
-            //DRAW
-            int lw = ell.lineWidth();
-            DWORD  lineColor = ell.outlineColor();
-            DWORD  fillColor = ell.fillColor();
+                hPen = CreatePen(PS_DASHDOT, lw, lineColor);
+                SelectObject(hdc, hPen);
 
-            hPen = CreatePen(PS_DASHDOT, lw, lineColor);
-            SelectObject(hdc, hPen);
+                if (fillColor != -1) {
+                    HBRUSH shapeBrush = CreateSolidBrush(fillColor);
+                    SelectObject(hdc, shapeBrush);
+                    Rectangle(hdc, rect.topLeft().x(), rect.topLeft().y(), rect.rightBottom().x(), rect.rightBottom().y());
+                    DeleteObject(shapeBrush);
+                }
+                else {
+                    HGDIOBJ hollowBrush = GetStockObject(HOLLOW_BRUSH);
+                    SelectObject(hdc, hollowBrush);
+                    Rectangle(hdc, rect.topLeft().x(), rect.topLeft().y(), rect.rightBottom().x(), rect.rightBottom().y());
+                    DeleteObject(hollowBrush);
+                }
 
-            if (fillColor != -1) {
-                HBRUSH shapeBrush = CreateSolidBrush(fillColor);
-                SelectObject(hdc, shapeBrush);
-                Ellipse(hdc, ell.topLeft().x(), ell.topLeft().y(), ell.rightBottom().x(), ell.rightBottom().y());
-                DeleteObject(shapeBrush);
+                DeleteObject(hPen);
             }
-            else {
-                HGDIOBJ hollowBrush = GetStockObject(HOLLOW_BRUSH);
-                SelectObject(hdc, hollowBrush);
-                Ellipse(hdc, ell.topLeft().x(), ell.topLeft().y(), ell.rightBottom().x(), ell.rightBottom().y());
-                DeleteObject(hollowBrush);
-            }
+            else if (shapes[shapeIndex]->type() == "Ellipse") {
+                vector<string> tokens = Tokenizer::split(shapes[shapeIndex]->toString(), ":");
+                MyEllipse ell = MyEllipse::parse(tokens[1]);
 
-            DeleteObject(hPen);
+                //DRAW
+                int lw = ell.lineWidth();
+                DWORD  lineColor = ell.outlineColor();
+                DWORD  fillColor = ell.fillColor();
+
+                hPen = CreatePen(PS_DASHDOT, lw, lineColor);
+                SelectObject(hdc, hPen);
+
+                if (fillColor != -1) {
+                    HBRUSH shapeBrush = CreateSolidBrush(fillColor);
+                    SelectObject(hdc, shapeBrush);
+                    Ellipse(hdc, ell.topLeft().x(), ell.topLeft().y(), ell.rightBottom().x(), ell.rightBottom().y());
+                    DeleteObject(shapeBrush);
+                }
+                else {
+                    HGDIOBJ hollowBrush = GetStockObject(HOLLOW_BRUSH);
+                    SelectObject(hdc, hollowBrush);
+                    Ellipse(hdc, ell.topLeft().x(), ell.topLeft().y(), ell.rightBottom().x(), ell.rightBottom().y());
+                    DeleteObject(hollowBrush);
+                }
+
+                DeleteObject(hPen);
+            }
+            shapeIndex++;
         }
     }
 }
