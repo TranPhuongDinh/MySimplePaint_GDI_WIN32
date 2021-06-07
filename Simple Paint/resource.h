@@ -77,10 +77,11 @@
 #define ID_TOOL_RECTANGLE               32803
 #define ID_TOOL_ELLIPSE                 32804
 #define ID_TOOL_TEXT                    32805
-#define ID_TOOL_CURVE                   32806
-#define ID_SHAPEFILL_NONE               32807
-#define ID_SHAPEFILL_CHOOSEFILLCOLOR    32808
-#define ID_TOOL_ERASER                  32809
+#define ID_TOOL_POINT                   32806
+#define ID_TOOL_CURVE                   32807
+#define ID_SHAPEFILL_NONE               32808
+#define ID_SHAPEFILL_CHOOSEFILLCOLOR    32809
+#define ID_TOOL_ERASER                  32810
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

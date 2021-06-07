@@ -43,7 +43,8 @@ isDrawingRectangle = 0,
 isDrawingEllipse = 0,
 isDrawingText = 0,
 isErasing = 0,
-isOpen = 0;
+isOpen = 0,
+isFreeDrawing = 0;
 
 int lineWidth = 2;
 int fromX;
@@ -88,13 +89,14 @@ INT_PTR CALLBACK UserSave(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 INT_PTR CALLBACK UserOpen(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 #pragma region Utility Functions
-void changeDrawingState(bool point, bool line, bool rect, bool ellipse, bool text, bool eraser) {
+void changeDrawingState(bool point, bool line, bool rect, bool ellipse, bool text, bool eraser, bool freeDrawing) {
     isDrawingCurve = point;
     isDrawingLine = line;
     isDrawingRectangle = rect;
     isDrawingEllipse = ellipse;
     isDrawingText = text;
     isErasing = eraser;
+    isFreeDrawing = freeDrawing;
 }
 
 int CaptureAnImage(HWND hWnd, WCHAR* fileDir)
@@ -267,9 +269,11 @@ void drawFromCache(HDC hdc, HPEN hPen) {
     }
 
     for (int i = 0; i < texts.size(); i++) {
-        SelectObject(hdc, texts[i]->hfont());
+        HFONT textFont = texts[i]->hfont();
+        SelectObject(hdc, textFont);
         SetTextColor(hdc, texts[i]->textColor());
         TextOut(hdc, texts[i]->x(), texts[i]->y(), texts[i]->textContent(), texts[i]->textLength());
+        DeleteObject(textFont);
     }
 
     for (int i = 0; i < shapes.size(); i++) {
@@ -285,6 +289,8 @@ void drawFromCache(HDC hdc, HPEN hPen) {
 
             SetArcDirection(hdc, AD_CLOCKWISE);
             Arc(hdc, curve.start().x(), curve.start().y(), curve.end().x(), curve.end().y(), curve.start().x(), curve.start().y(), curve.end().x(), curve.end().y());
+
+            DeleteObject(hPen);
         }
         else if (shapes[i]->type() == "Line") {
             vector<string> tokens = Tokenizer::split(shapes[i]->toString(), ":");
@@ -298,6 +304,8 @@ void drawFromCache(HDC hdc, HPEN hPen) {
 
             MoveToEx(hdc, line.start().x(), line.start().y(), NULL);
             LineTo(hdc, line.end().x(), line.end().y());
+
+            DeleteObject(hPen);
         }
         else if (shapes[i]->type() == "Rectangle") {
             vector<string> tokens = Tokenizer::split(shapes[i]->toString(), ":");
@@ -312,13 +320,19 @@ void drawFromCache(HDC hdc, HPEN hPen) {
             SelectObject(hdc, hPen);
 
             if (fillColor != -1) {
-                SelectObject(hdc, CreateSolidBrush(fillColor));
+                HBRUSH shapeBrush = CreateSolidBrush(fillColor);
+                SelectObject(hdc, shapeBrush);
                 Rectangle(hdc, rect.topLeft().x(), rect.topLeft().y(), rect.rightBottom().x(), rect.rightBottom().y());
+                DeleteObject(shapeBrush);
             }
             else {
-                SelectObject(hdc, GetStockObject(HOLLOW_BRUSH));
+                HGDIOBJ hollowBrush = GetStockObject(HOLLOW_BRUSH);
+                SelectObject(hdc, hollowBrush);
                 Rectangle(hdc, rect.topLeft().x(), rect.topLeft().y(), rect.rightBottom().x(), rect.rightBottom().y());
+                DeleteObject(hollowBrush);
             }
+
+            DeleteObject(hPen);
         }
         else if (shapes[i]->type() == "Ellipse") {
             vector<string> tokens = Tokenizer::split(shapes[i]->toString(), ":");
@@ -333,13 +347,19 @@ void drawFromCache(HDC hdc, HPEN hPen) {
             SelectObject(hdc, hPen);
 
             if (fillColor != -1) {
-                SelectObject(hdc, CreateSolidBrush(fillColor));
+                HBRUSH shapeBrush = CreateSolidBrush(fillColor);
+                SelectObject(hdc, shapeBrush);
                 Ellipse(hdc, ell.topLeft().x(), ell.topLeft().y(), ell.rightBottom().x(), ell.rightBottom().y());
+                DeleteObject(shapeBrush);
             }
             else {
-                SelectObject(hdc, GetStockObject(HOLLOW_BRUSH));
+                HGDIOBJ hollowBrush = GetStockObject(HOLLOW_BRUSH);
+                SelectObject(hdc, hollowBrush);
                 Ellipse(hdc, ell.topLeft().x(), ell.topLeft().y(), ell.rightBottom().x(), ell.rightBottom().y());
+                DeleteObject(hollowBrush);
             }
+
+            DeleteObject(hPen);
         }
     }
 }
@@ -418,6 +438,11 @@ void Paint(HWND hwnd, LPPAINTSTRUCT ps) {
         if (isDrawingLine) {
             MoveToEx(hdcMem, fromX, fromY, NULL);
             LineTo(hdcMem, toX, toY);
+        }
+
+        /*Vẽ tự do*/
+        if (isFreeDrawing) {
+            Ellipse(hdcMem, fromX, fromY, fromX + lineWidth, fromY + lineWidth);
         }
 
         /* Vẽ Rectangle */
@@ -534,11 +559,12 @@ BOOL OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
         { 3, ID_EDIT_UNDO,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
         { 4, ID_EDIT_REDO,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
         { 5, ID_TOOL_ERASER,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
-        { 6, ID_TOOL_CURVE,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
-        { 7, ID_TOOL_ELLIPSE,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
-        { 8, ID_TOOL_RECTANGLE,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
-        { 9, ID_TOOL_LINE,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
-        { 10, ID_TOOL_TEXT,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 }
+        { 6, ID_TOOL_POINT,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
+        { 7, ID_TOOL_CURVE,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
+        { 8, ID_TOOL_ELLIPSE,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
+        { 9, ID_TOOL_RECTANGLE,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
+        { 10, ID_TOOL_LINE,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 },
+        { 11, ID_TOOL_TEXT,	TBSTATE_ENABLED, TBSTYLE_BUTTON, 0, 0 }
     };
 
     TBADDBITMAP	tbBitmap = { hInst, IDB_BITMAP2 };
@@ -546,7 +572,7 @@ BOOL OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
     int idx = SendMessage(hToolBarWnd, TB_ADDBITMAP, (WPARAM)sizeof(tbBitmap) / sizeof(tbBitmap),
         (LPARAM)(LPTBADDBITMAP)&tbBitmap);
     // Xác định chỉ mục hình ảnh của mỗi button từ ảnh bự liên hoàn nhiều tấm
-    for (int i = 0; i <= 10; i++) {
+    for (int i = 0; i <= 11; i++) {
         userButtons[i].iBitmap += idx;
     }
     // Thêm nút bấm vào toolbar
@@ -777,34 +803,39 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
         }
         break;
     }
+    case ID_TOOL_POINT:
+    {
+        changeDrawingState(0, 0, 0, 0, 0, 0, 1);
+        break;
+    }
     case ID_TOOL_ERASER:
     {
-        changeDrawingState(0, 0, 0, 0, 0, 1);
+        changeDrawingState(0, 0, 0, 0, 0, 1, 0);
         break;
     }
     case ID_TOOL_CURVE:
     {
-        changeDrawingState(1, 0, 0, 0, 0, 0);
+        changeDrawingState(1, 0, 0, 0, 0, 0, 0);
         break;
     }
     case ID_TOOL_LINE:
     {
-        changeDrawingState(0, 1, 0, 0, 0, 0);
+        changeDrawingState(0, 1, 0, 0, 0, 0, 0);
         break;
     }
     case ID_TOOL_RECTANGLE:
     {
-        changeDrawingState(0, 0, 1, 0, 0, 0);
+        changeDrawingState(0, 0, 1, 0, 0, 0, 0);
         break;
     }
     case ID_TOOL_ELLIPSE:
     {
-        changeDrawingState(0, 0, 0, 1, 0, 0);
+        changeDrawingState(0, 0, 0, 1, 0, 0, 0);
         break;
     }
     case ID_TOOL_TEXT:
     {
-        changeDrawingState(0, 0, 0, 0, 1, 0);
+        changeDrawingState(0, 0, 0, 0, 1, 0, 0);
         DialogBox(hInst, MAKEINTRESOURCE(IDD_INPUTBOX), hwnd, UserInput);
         break;
     }
@@ -847,7 +878,14 @@ void OnMouseMove(HWND &hwnd, int x, int y, UINT keyFlags)
 void OnLButtonUp(HWND &hwnd, int x, int y, UINT keyFlags)
 {
     isPreview = false;
-    if (isErasing) {
+    if (isFreeDrawing) {
+        Point topLeft(fromX, fromY);
+        Point rightBottom(fromX + lineWidth, fromY + lineWidth);
+        Shape* ell = new MyEllipse(topLeft, rightBottom, lineWidth, rgbCurrent, rgbCurrent);
+        shapes.push_back(ell);
+        cacheTypes.push_back("Shape");
+    }
+    else if (isErasing) {
         if (shapes.size() > 0 || texts.size() > 0) {
             Point topLeft(fromX, fromY);
             Point rightBottom(toX, toY);
