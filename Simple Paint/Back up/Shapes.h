@@ -1,0 +1,6 @@
+#include "Shape.h"
+#include "Point.h"
+#include "MyLine.h"
+#include "MyRectangle.h"
+#include "MyEllipse.h"
+#include "MyCurve.h"
