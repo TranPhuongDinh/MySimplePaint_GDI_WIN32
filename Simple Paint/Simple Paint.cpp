@@ -34,8 +34,8 @@ vector<string> cacheTypes;
 vector<string> cacheRedoTypes;
 vector<Text*> cacheTexts;
 vector<Shape*> cacheShapes;
-vector<WCHAR*> cacheOpenFileDirs;
-vector<WCHAR*> cacheRedoOpenFileDirs;
+vector<wstring> cacheOpenFileDirs;
+vector<wstring> cacheRedoOpenFileDirs;
 
 bool isDrawingCurve = 0,
 isDrawingLine = 1,
@@ -62,7 +62,7 @@ WCHAR* inputText = NULL;
 WCHAR* fileName = NULL;
 WCHAR fileDir[MAX_LOADSTRING];
 
-int fileNameLength = 0, fileSavedLength = 0, inputTextLength = 0;
+int inputTextLength = 0;
 
 HPEN hPen;
 PAINTSTRUCT ps;
@@ -124,7 +124,7 @@ int CaptureAnImage(HWND hWnd, WCHAR* fileDir)
 
     if (!hdcMemDC)
     {
-        MessageBox(hWnd, L"CreateCompatibleDC has failed", L"Failed", MB_OK);
+        MessageBox(hWnd, L"CreateCompatibleDC has failed", L"Failed", MB_OK | MB_ICONERROR);
         goto done;
     }
 
@@ -136,11 +136,11 @@ int CaptureAnImage(HWND hWnd, WCHAR* fileDir)
     SetStretchBltMode(hdcWindow, HALFTONE);
 
     // Create a compatible bitmap from the Window DC.
-    hbmScreen = CreateCompatibleBitmap(hdcWindow, WINDOW_WIDTH - IMAGE_WIDTH + 5, WINDOW_HEIGHT - 6 * IMAGE_HEIGHT + 5);
+    hbmScreen = CreateCompatibleBitmap(hdcWindow, WINDOW_WIDTH - IMAGE_WIDTH - 2, WINDOW_HEIGHT - 6 * IMAGE_HEIGHT - 4);
 
     if (!hbmScreen)
     {
-        MessageBox(hWnd, L"CreateCompatibleBitmap Failed", L"Failed", MB_OK);
+        MessageBox(hWnd, L"CreateCompatibleBitmap Failed", L"Failed", MB_OK | MB_ICONERROR);
         goto done;
     }
 
@@ -152,10 +152,10 @@ int CaptureAnImage(HWND hWnd, WCHAR* fileDir)
         0, 0,
         rcClient.right - rcClient.left, rcClient.bottom - rcClient.top,
         hdcWindow,
-        0, IMAGE_HEIGHT*2,
+        0, IMAGE_HEIGHT * 2,
         SRCCOPY))
     {
-        MessageBox(hWnd, L"BitBlt has failed", L"Failed", MB_OK);
+        MessageBox(hWnd, L"BitBlt has failed", L"Failed", MB_OK | MB_ICONERROR);
         goto done;
     }
 
@@ -232,29 +232,46 @@ done:
     return 0;
 }
 
+wstring openfilename(HWND owner, bool isOpen) {
+    OPENFILENAME ofn;
+    wchar_t filePath[MAX_PATH] = L"Untitle";
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(OPENFILENAME);
+    ofn.hwndOwner = owner;
+    ofn.lpstrFilter = (LPCWSTR)L"Image (*.bmp)\0*.bmp\0\0";
+    ofn.lpstrFile = (LPTSTR)filePath;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_NOVALIDATE | OFN_ENABLETEMPLATEHANDLE | OFN_CREATEPROMPT;
+    ofn.lpstrDefExt = (LPCWSTR)L"bmp";
+    wstring fileNameStr;
+    if (isOpen) {
+        if (GetOpenFileName(&ofn)) {
+            fileNameStr = wstring(filePath);
+        }
+        else {
+            int errorCode = CommDlgExtendedError();
+            fileNameStr = L"";
+        }
+    }
+    else {
+        if (GetSaveFileName(&ofn)) {
+            fileNameStr = wstring(filePath);
+        }
+        else {
+            int errorCode = CommDlgExtendedError();
+            fileNameStr = L"";
+        }
+    }
+    return fileNameStr;
+}
+
 void SaveAnImage() {
-    DialogBox(hInst, MAKEINTRESOURCE(IDD_SAVEBOX), hwnd, UserSave);
-    if (!isSave) {
-        //Do nothing
-    }
-    else if (fileNameLength == 0) {
-        MessageBox(hwnd, L"Please input a valid name!", L"Save Image Failed", MB_OK);
-    }
-    else if (isSave) {
-        //Create Folder to save
-        if (!filesystem::exists("Saved images"))
-            CreateDirectoryA("Saved images", NULL);
-
-        wcscat(fileName, L".bmp");
-        wcscpy(fileDir, L"Saved images//");
-        wcscat(fileDir, fileName);
-
-        CaptureAnImage(hwnd, fileDir);
-
-        WCHAR success[MAX_LOADSTRING];
-        wcscpy(success, L"The image has been saved at Save images/");
-        wcscat(success, fileName);
-        MessageBox(hwnd, success, L"Save Image", MB_OK);
+    wstring fileDirection = openfilename(hwnd, 0);
+    if (fileDirection.size() > 0) {
+        CaptureAnImage(hwnd, &fileDirection[0]);
+        wstring success = L"The image has been saved at ";
+        success += fileDirection;
+        MessageBox(hwnd, &success[0], L"Save Image", MB_OK | MB_ICONINFORMATION);
     }
 }
 
@@ -263,9 +280,10 @@ void drawFromCache(HDC hdc, HPEN hPen) {
     for (int i = 0; i < cacheTypes.size(); i++) {
         if (cacheTypes[i] == "Image") {
             if (cacheOpenFileDirs.size() > 0) {
-                if (!LoadAndBlitBitmap(cacheOpenFileDirs[imageIndex++], hdc)) {
-                    cacheOpenFileDirs.clear();
-                    MessageBox(NULL, __T("LoadImage Failed"), __T("Error"), MB_OK);
+                if (!LoadAndBlitBitmap(&cacheOpenFileDirs[imageIndex++][0], hdc)) {
+                    cacheOpenFileDirs.pop_back();
+                    cacheTypes.pop_back();
+                    MessageBox(NULL, __T("LoadImage Failed"), __T("Error"), MB_OK | MB_ICONERROR);
                 }
             }
         }
@@ -288,7 +306,6 @@ void drawFromCache(HDC hdc, HPEN hPen) {
                 hPen = CreatePen(PS_DASHDOT, lw, curveColor);
                 SelectObject(hdc, hPen);
 
-                SetArcDirection(hdc, AD_CLOCKWISE);
                 Arc(hdc, curve.start().x(), curve.start().y(), curve.end().x(), curve.end().y(), curve.start().x(), curve.start().y(), curve.end().x(), curve.end().y());
 
                 DeleteObject(hPen);
@@ -430,10 +447,6 @@ void Paint(HWND hwnd, LPPAINTSTRUCT ps) {
 
         /*Vẽ point*/
         if (isDrawingCurve) {
-            SetArcDirection(
-                hdcMem,
-                AD_CLOCKWISE
-            );
             Arc(hdcMem, fromX, fromY, toX, toY, fromX, fromY, toX, toY);
         }
 
@@ -592,7 +605,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     case ID_FILE_NEW:
     {
         if (shapes.size() > 0 || texts.size() > 0 || cacheOpenFileDirs.size() > 0)  {
-            if (MessageBox(hwnd, L"Save Image?", L"Save Image", MB_YESNO) == IDYES) {
+            if (MessageBox(hwnd, L"Save Image?", L"Save Image", MB_YESNO | MB_ICONQUESTION) == IDYES) {
                 SaveAnImage();
             }
         }
@@ -612,23 +625,9 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     case ID_FILE_OPEN:
     {
         onCommandProcess = true;
-        DialogBox(hInst, MAKEINTRESOURCE(IDD_OPENBOX), hwnd, UserOpen);
-        if (!isOpen) {
-            //Do nothing
-        }
-        else if (fileSavedLength == 0) {
-            MessageBox(hwnd, L"Please input a valid path!", L"Open Image Failed", MB_OK);
-        }
-        else if (isOpen) {
-            wcscpy(fileDir, fileName);
-            if (cacheOpenFileDirs.empty()) {
-                cacheOpenFileDirs.push_back(fileDir);
-            }
-            else {
-                cacheOpenFileDirs.back() = fileDir;
-            }
-            cacheTypes.push_back("Image");
-        }
+        wstring fileDirection = openfilename(hwnd, 1);
+        cacheOpenFileDirs.push_back(fileDirection);
+        cacheTypes.push_back("Image");
         clearScreen(hwnd);
         break;
     }
@@ -659,7 +658,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     case ID_FILE_EXIT:
     {
         if (shapes.size() > 0 || texts.size() > 0 || cacheOpenFileDirs.size() > 0) {
-            if (MessageBox(hwnd, L"Save Image?", L"Save Image", MB_YESNO) == IDYES) {
+            if (MessageBox(hwnd, L"Save Image?", L"Save Image", MB_YESNO | MB_ICONQUESTION) == IDYES) {
                 SaveAnImage();
             }
         }
@@ -745,7 +744,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
             onCommandProcess = true;
             if (cacheTypes.back() == "Image") {
                 if (cacheOpenFileDirs.size() > 0) {
-                    WCHAR* lastDir = cacheOpenFileDirs.back();
+                    wstring lastDir = cacheOpenFileDirs.back();
                     cacheOpenFileDirs.pop_back();
                     cacheRedoOpenFileDirs.push_back(lastDir);
                 }
@@ -770,6 +769,10 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 
             //clear screen
             clearScreen(hwnd);
+            SendMessage(hwnd,
+                HKM_SETHOTKEY,
+                MAKEWORD(0x5A, HOTKEYF_CONTROL),
+                0);
         }
         break;
     }
@@ -779,7 +782,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
             onCommandProcess = true;
             if (cacheRedoTypes.back() == "Image") {
                 if (cacheRedoOpenFileDirs.size() > 0) {
-                    WCHAR* lastDir = cacheRedoOpenFileDirs.back();
+                    wstring lastDir = cacheRedoOpenFileDirs.back();
                     cacheRedoOpenFileDirs.pop_back();
                     cacheOpenFileDirs.push_back(lastDir);
                     cacheTypes.push_back("Image");
@@ -1121,75 +1124,4 @@ INT_PTR CALLBACK UserInput(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam
     }
     return (INT_PTR)FALSE;
 }
-
-INT_PTR CALLBACK UserSave(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_CLOSE:
-        EndDialog(hDlg, LOWORD(wParam));
-        isSave = false;
-        return (INT_PTR)FALSE;
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if (LOWORD(wParam) == SAVEBOX_CANCEL)
-        {
-            isSave = false;
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        else if (LOWORD(wParam) == SAVEBOX_OK) {
-            HWND inputItem = GetDlgItem(hDlg, SAVEBOX_INPUTVALUE);
-            int len = GetWindowTextLength(inputItem);
-            WCHAR* buffer = new WCHAR[len + 1];
-            GetWindowText(inputItem, buffer, len + 1);
-            fileName = buffer;
-            fileNameLength = len;
-            EndDialog(hDlg, LOWORD(wParam));
-            isSave = true;
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
-}
-
-INT_PTR CALLBACK UserOpen(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_CLOSE:
-        EndDialog(hDlg, LOWORD(wParam));
-        isOpen = false;
-        return (INT_PTR)FALSE;
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if (LOWORD(wParam) == OPENBOX_CANCEL)
-        {
-            isOpen = false;
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        else if (LOWORD(wParam) == OPENBOX_OK) {
-            HWND inputItem = GetDlgItem(hDlg, OPENBOX_INPUTVALUE);
-            int len = GetWindowTextLength(inputItem);
-            WCHAR* buffer = new WCHAR[len + 1];
-            GetWindowText(inputItem, buffer, len + 1);
-            fileName = buffer;
-            fileSavedLength = len;
-            EndDialog(hDlg, LOWORD(wParam));
-            isOpen = true;
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
-}
-
 #pragma endregion

@@ -1,6 +1,6 @@
 SIMPLE PAINT (WIN32 GDI)
 
-Chức năng làm được:
+Chức năng:
 - Vẽ Point
 - Vẽ đường cong
 - Vẽ đường thẳng
@@ -10,12 +10,8 @@ Chức năng làm được:
 - Xóa
 - Undo 
 - Redo
-- Save dưới dạng bmp
-- Mở hình bmp và nạp vào cửa sổ chương trình
-
-Chức năng chưa làm được:
-- Chỉ mở được một hình mỗi lần nạp vào cửa sổ chương trình
-- Hộp thoại open file và save file
+- Save dưới dạng bmp qua hộp thoại save file
+- Mở hình bmp và nạp vào cửa sổ chương trình qua hộp thoại open file
 
 Môi trường chạy:
 - Khi biên dịch: Visual Studio 2019, C++ 17
