@@ -18,4 +18,4 @@ Môi trường chạy:
 - Competibility mode: Windows8
 - Reduced color mode: 8bit
 
-Link youtube demo: coming soon
+Link youtube demo: https://youtu.be/yamXn-yCwio
