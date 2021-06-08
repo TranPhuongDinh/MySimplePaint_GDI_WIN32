@@ -31,17 +31,9 @@
 #define IDB_BITMAP2                     141
 #define IDI_ICON1                       142
 #define IDD_DIALOG2                     143
-#define IDD_SAVEBOX                     143
-#define IDD_OPENBOX                     144
 #define IDC_INPUTVALUE                  1004
 #define INPUTBOX_INPUTVALUE             1004
 #define INPUTBOX_OK                     1005
-#define SAVEBOX_INPUTVALUE              1006
-#define SAVEBOX_CANCEL                  1007
-#define SAVEBOX_OK                      1008
-#define OPENBOX_INPUTVALUE              1009
-#define OPENBOX_OK                      1010
-#define OPENBOX_CANCEL                  1011
 #define ID_CHOOSE_FONT                  32771
 #define ID_CHOOSE_COLOR                 32772
 #define ID_NEW_CTRL                     32773

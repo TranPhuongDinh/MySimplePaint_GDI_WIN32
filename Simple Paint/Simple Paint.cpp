@@ -71,7 +71,7 @@ HWND hwnd;              // owner window
 // Color
 CHOOSECOLOR  cc; // Thông tin màu chọn
 COLORREF  acrCustClr[16]; // Mảng custom color
-DWORD  rgbCurrent = RGB(0,0,0); // Black // Tạo ra brush từ màu đã chọn
+DWORD  rgbCurrent = RGB(0, 0, 0); // Black // Tạo ra brush từ màu đã chọn
 DWORD fontColor = RGB(0, 0, 0);
 
 // Font
@@ -116,7 +116,7 @@ int CaptureAnImage(HWND hWnd, WCHAR* fileDir)
     // Retrieve the handle to a display device context for the client 
     // area of the window. 
     hdcScreen = GetDC(NULL);
-    
+
     hdcWindow = GetDC(hWnd);
 
     // Create a compatible DC, which is used in a BitBlt from the window DC.
@@ -136,7 +136,8 @@ int CaptureAnImage(HWND hWnd, WCHAR* fileDir)
     SetStretchBltMode(hdcWindow, HALFTONE);
 
     // Create a compatible bitmap from the Window DC.
-    hbmScreen = CreateCompatibleBitmap(hdcWindow, WINDOW_WIDTH - IMAGE_WIDTH + 5, WINDOW_HEIGHT - 6 * IMAGE_HEIGHT + 5);
+    hbmScreen = CreateCompatibleBitmap(hdcWindow, WINDOW_WIDTH - IMAGE_HEIGHT / 2, WINDOW_HEIGHT - 5 * IMAGE_HEIGHT - IMAGE_HEIGHT / 2
+    );
 
     if (!hbmScreen)
     {
@@ -604,7 +605,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     switch (id) {
     case ID_FILE_NEW:
     {
-        if (shapes.size() > 0 || texts.size() > 0 || cacheOpenFileDirs.size() > 0)  {
+        if (shapes.size() > 0 || texts.size() > 0 || cacheOpenFileDirs.size() > 0) {
             if (MessageBox(hwnd, L"Save Image?", L"Save Image", MB_YESNO | MB_ICONQUESTION) == IDYES) {
                 SaveAnImage();
             }
@@ -861,7 +862,7 @@ void OnPaint(HWND hwnd)
     EndPaint(hwnd, &ps);
 }
 
-void OnLButtonDown(HWND &hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
+void OnLButtonDown(HWND& hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
 {
     onCommandProcess = false;
     isPreview = true;
@@ -871,7 +872,7 @@ void OnLButtonDown(HWND &hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
     MoveToEx(hdc, x, y, NULL);
 }
 
-void OnMouseMove(HWND &hwnd, int x, int y, UINT keyFlags)
+void OnMouseMove(HWND& hwnd, int x, int y, UINT keyFlags)
 {
     if (isPreview) {
         toX = x;
@@ -881,7 +882,7 @@ void OnMouseMove(HWND &hwnd, int x, int y, UINT keyFlags)
     }
 }
 
-void OnLButtonUp(HWND &hwnd, int x, int y, UINT keyFlags)
+void OnLButtonUp(HWND& hwnd, int x, int y, UINT keyFlags)
 {
     isPreview = false;
     if (isFreeDrawing) {
@@ -922,7 +923,7 @@ void OnLButtonUp(HWND &hwnd, int x, int y, UINT keyFlags)
         Shape* line = new MyLine(start, end, lineWidth, rgbCurrent);
         shapes.push_back(line);
         cacheTypes.push_back("Shape");
-    }   
+    }
     else if (isDrawingRectangle) {
         Point topLeft(fromX, fromY);
         Point rightBottom(toX, toY);
@@ -1027,7 +1028,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     hwnd = CreateWindowW(szWindowClass, szTitle,
         WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU,
-        200,100,WINDOW_WIDTH,WINDOW_HEIGHT, nullptr, nullptr, hInstance, nullptr);
+        200, 100, WINDOW_WIDTH, WINDOW_HEIGHT, nullptr, nullptr, hInstance, nullptr);
 
     if (!hwnd)
     {
@@ -1053,8 +1054,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-        case WM_ERASEBKGND:
-            return LRESULT(1);
+    case WM_ERASEBKGND:
+        return LRESULT(1);
         HANDLE_MSG(hWnd, WM_CREATE, OnCreate);
         HANDLE_MSG(hWnd, WM_COMMAND, OnCommand);
         HANDLE_MSG(hWnd, WM_DESTROY, OnDestroy);
