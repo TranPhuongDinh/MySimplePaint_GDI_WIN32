@@ -893,9 +893,9 @@ void OnLButtonUp(HWND &hwnd, int x, int y, UINT keyFlags)
     }
     else if (isErasing) {
         if (shapes.size() > 0 || texts.size() > 0) {
-            Point topLeft(fromX, fromY);
-            Point rightBottom(toX, toY);
-            Shape* rect = new MyRectangle(topLeft, rightBottom, 1, RGB(255, 255, 255), RGB(255, 255, 255));
+            Point topLeft(fromX + 1, fromY + 1);
+            Point rightBottom(toX - 1, toY - 1);
+            Shape* rect = new MyRectangle(topLeft, rightBottom, 2, RGB(255, 255, 255), RGB(255, 255, 255));
             shapes.push_back(rect);
             cacheTypes.push_back("Shape");
         }
