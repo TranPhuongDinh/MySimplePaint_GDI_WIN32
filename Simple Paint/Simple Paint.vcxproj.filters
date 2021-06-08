@@ -104,7 +104,7 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="App.Manifest">
+    <Manifest Include="App.manifest">
       <Filter>Resource Files</Filter>
     </Manifest>
   </ItemGroup>

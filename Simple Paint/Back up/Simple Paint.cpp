@@ -136,7 +136,7 @@ int CaptureAnImage(HWND hWnd, WCHAR* fileDir)
     SetStretchBltMode(hdcWindow, HALFTONE);
 
     // Create a compatible bitmap from the Window DC.
-    hbmScreen = CreateCompatibleBitmap(hdcWindow, WINDOW_WIDTH - IMAGE_WIDTH - 2, WINDOW_HEIGHT - 6 * IMAGE_HEIGHT - 4);
+    hbmScreen = CreateCompatibleBitmap(hdcWindow, WINDOW_WIDTH - IMAGE_WIDTH + 5, WINDOW_HEIGHT - 6 * IMAGE_HEIGHT + 5);
 
     if (!hbmScreen)
     {
