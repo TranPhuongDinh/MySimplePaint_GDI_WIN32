@@ -423,17 +423,23 @@ void Paint(HWND hwnd, LPPAINTSTRUCT ps) {
     // Thả pen vào hdc
     SelectObject(hdcMem, hPen);
 
+    HBRUSH shapeFillColor = NULL;
+    HGDIOBJ shapeNoFill = NULL;
+
     if (isErasing) {
         hPen = CreatePen(PS_DASHDOT, 1, 0);
-        SelectObject(hdcMem, CreateSolidBrush(RGB(255, 255, 255)));
+        shapeFillColor = CreateSolidBrush(RGB(255, 255, 255));
+        SelectObject(hdcMem, shapeFillColor);
     }
     else if (brushColor == -1) {
         hPen = CreatePen(PS_DASHDOT, lineWidth, rgbCurrent);
-        SelectObject(hdcMem, GetStockObject(HOLLOW_BRUSH));
+        shapeNoFill = GetStockObject(HOLLOW_BRUSH);
+        SelectObject(hdcMem, shapeNoFill);
     }
     else {
         hPen = CreatePen(PS_DASHDOT, lineWidth, rgbCurrent);
-        SelectObject(hdcMem, CreateSolidBrush(brushColor));
+        shapeFillColor = CreateSolidBrush(brushColor);
+        SelectObject(hdcMem, shapeFillColor);
     }
 
     if (isDrawingText) {
@@ -486,6 +492,12 @@ void Paint(HWND hwnd, LPPAINTSTRUCT ps) {
     //
     SelectObject(hdcMem, hbmOld);
     DeleteObject(hbmMem);
+    if (shapeFillColor) {
+        DeleteObject(shapeFillColor);
+    }
+    if (shapeNoFill) {
+        DeleteObject(shapeNoFill);
+    }
     DeleteDC(hdcMem);
 }
 
@@ -893,9 +905,11 @@ void OnLButtonUp(HWND& hwnd, int x, int y, UINT keyFlags)
         cacheTypes.push_back("Shape");
     }
     else if (isErasing) {
-        if (shapes.size() > 0 || texts.size() > 0) {
-            Point topLeft(fromX + 1, fromY + 1);
-            Point rightBottom(toX - 1, toY - 1);
+        hPen = CreatePen(PS_DASHDOT, 2, RGB(255, 255, 255));
+        SelectObject(hdc, hPen);
+        if (shapes.size() > 0 || texts.size() > 0 || cacheOpenFileDirs.size() > 0) {
+            Point topLeft(fromX, fromY);
+            Point rightBottom(toX, toY);
             Shape* rect = new MyRectangle(topLeft, rightBottom, 2, RGB(255, 255, 255), RGB(255, 255, 255));
             shapes.push_back(rect);
             cacheTypes.push_back("Shape");
