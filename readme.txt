@@ -1,7 +1,7 @@
 SIMPLE PAINT (WIN32 GDI)
 
 Chức năng:
-- Vẽ Point
+- Vẽ tự do
 - Vẽ đường cong
 - Vẽ đường thẳng
 - Vẽ hình chữ nhật

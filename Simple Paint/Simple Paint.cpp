@@ -38,13 +38,13 @@ vector<wstring> cacheOpenFileDirs;
 vector<wstring> cacheRedoOpenFileDirs;
 
 bool isDrawingCurve = 0,
-isDrawingLine = 1,
+isDrawingLine = 0,
 isDrawingRectangle = 0,
 isDrawingEllipse = 0,
 isDrawingText = 0,
 isErasing = 0,
 isOpen = 0,
-isFreeDrawing = 0;
+isFreeDrawing = 1;
 
 int lineWidth = 2;
 int fromX;
@@ -465,7 +465,8 @@ void Paint(HWND hwnd, LPPAINTSTRUCT ps) {
 
         /*Vẽ tự do*/
         if (isFreeDrawing) {
-            Ellipse(hdcMem, fromX, fromY, fromX + lineWidth, fromY + lineWidth);
+            MoveToEx(hdcMem, fromX, fromY, NULL);
+            LineTo(hdcMem, toX, toY);
         }
 
         /* Vẽ Rectangle */
@@ -890,6 +891,18 @@ void OnMouseMove(HWND& hwnd, int x, int y, UINT keyFlags)
         toX = x;
         toY = y;
 
+        if (isFreeDrawing) {
+            fromX = x;
+            fromY = y;
+            MoveToEx(hdc, fromX, fromY, NULL);
+            LineTo(hdc, toX, toY);
+            Point start(fromX, fromY);
+            Point end(toX, toY);
+            Shape* line = new MyLine(start, end, lineWidth, rgbCurrent);
+            shapes.push_back(line);
+            cacheTypes.push_back("Shape");
+        }
+
         clearScreen(hwnd);
     }
 }
@@ -898,10 +911,10 @@ void OnLButtonUp(HWND& hwnd, int x, int y, UINT keyFlags)
 {
     isPreview = false;
     if (isFreeDrawing) {
-        Point topLeft(fromX, fromY);
-        Point rightBottom(fromX + lineWidth, fromY + lineWidth);
-        Shape* ell = new MyEllipse(topLeft, rightBottom, lineWidth, rgbCurrent, rgbCurrent);
-        shapes.push_back(ell);
+        Point start(fromX, fromY);
+        Point end(toX, toY);
+        Shape* line = new MyLine(start, end, lineWidth, rgbCurrent);
+        shapes.push_back(line);
         cacheTypes.push_back("Shape");
     }
     else if (isErasing) {
