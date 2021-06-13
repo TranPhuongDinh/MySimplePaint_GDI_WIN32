@@ -284,7 +284,7 @@ void drawFromCache(HDC hdc, HPEN hPen) {
                 if (!LoadAndBlitBitmap(&cacheOpenFileDirs[imageIndex++][0], hdc)) {
                     cacheOpenFileDirs.pop_back();
                     cacheTypes.pop_back();
-                    MessageBox(NULL, __T("LoadImage Failed"), __T("Error"), MB_OK | MB_ICONERROR);
+                    MessageBox(NULL, __T("Load Image Failed"), __T("Error"), MB_OK | MB_ICONERROR);
                 }
             }
         }
@@ -640,9 +640,11 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
     {
         onCommandProcess = true;
         wstring fileDirection = openfilename(hwnd, 1);
-        cacheOpenFileDirs.push_back(fileDirection);
-        cacheTypes.push_back("Image");
-        clearScreen(hwnd);
+        if (fileDirection != L"") {
+            cacheOpenFileDirs.push_back(fileDirection);
+            cacheTypes.push_back("Image");
+            clearScreen(hwnd);
+        }
         break;
     }
     case ID_FILE_SAVE:

@@ -1,6 +1,7 @@
-SIMPLE PAINT (WIN32 GDI)
+MSSV: 19120476
+Họ tên: Trần Phương Đình
 
-Chức năng:
+Chức năng làm được:
 - Vẽ tự do
 - Vẽ đường cong
 - Vẽ đường thẳng
@@ -10,6 +11,8 @@ Chức năng:
 - Xóa
 - Undo 
 - Redo
+- Clear all
+- New
 - Save dưới dạng bmp qua hộp thoại save file
 - Mở hình bmp và nạp vào cửa sổ chương trình qua hộp thoại open file
 
